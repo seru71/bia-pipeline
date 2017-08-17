@@ -777,12 +777,12 @@ def merge_bams(out_bam, *in_bams):
 	
 def map_reads(fastq_list, ref_genome, output_bam):
     
-    tmp_bams = [ output_bam+str(i) for i in range(0, len(fastq_list)) ]
-    for i in range(0, len(fastq_list)):
-		if isinstance(fastq_list[i], tuple):
-			bwa_map_and_sort(tmp_bams[i], ref_genome, fastq_list[i][0], fastq_list[i][1])
+    tmp_bams = [ output_bam+str(i) for i in range(len(fastq_list)) ]
+    for i, v in enumerate(fastq_list):
+		if isinstance(v, tuple):
+			bwa_map_and_sort(tmp_bams[i], ref_genome, v[0], v[1])
 		else:
-			bwa_map_and_sort(tmp_bams[i], ref_genome, fastq_list[i])   
+			bwa_map_and_sort(tmp_bams[i], ref_genome, v)   
     
     merge_bams(output_bam, *tmp_bams)
     
