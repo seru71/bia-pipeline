@@ -5,7 +5,8 @@
 
 ## Pipeline
 
-The pipeline consists of bcl2fastq, bbmap, Trimmomatic, FastQC, SPAdes, and QUAST
+The assembly pipeline consists of bcl2fastq, bbmap, Trimmomatic, FastQC, SPAdes, and QUAST
+New feature includes mapping to reference genome with BWA and joint- and single-sample genotyping with FreeBayes.
 
 
 
@@ -33,12 +34,17 @@ The pipeline is ready now, but you will need all of its components to perform th
 Install following tools:
 1. FastQC (https://www.bioinformatics.babraham.ac.uk/projects/fastqc)
 2. BBMap (https://sourceforge.net/projects/bbmap)
-2. Trimmomatic (http://www.usadellab.org/cms/?page=trimmomatic)
-3. SPAdes (http://bioinf.spbau.ru/spades)
-4. QUAST (http://bioinf.spbau.ru/quast)
+3. Trimmomatic (http://www.usadellab.org/cms/?page=trimmomatic)
+4. SPAdes (http://bioinf.spbau.ru/spades)
+5. QUAST (http://bioinf.spbau.ru/quast)
 
-And if your input is not yet converted to FASTQ, install also:  
-6. bcl2fastq (https://support.illumina.com/sequencing/sequencing_software/bcl2fastq-conversion-software.html)
+For mapping and genotyping you'll also need:
+6. BWA (https://github.com/lh3/bwa)
+7. SAMtools (http://www.htslib.org)
+8. Freebayes (https://github.com/ekg/freebayes)
+
+And if your input is not FASTQ, but raw data from the sequencer, install also:  
+9. bcl2fastq (https://support.illumina.com/sequencing/sequencing_software/bcl2fastq-conversion-software.html)
 
 
 ### Reference data
@@ -72,6 +78,9 @@ The NGS pipeline is run using `bia_pipeline.py` script:
     
     The two approaches can be run side by side and the results compared.
     To compare across both types of assemblies run QUAST on `<scratch-root>/<RUN_ID>/*/[mt]r_assembly/contigs.fasta`
+    
+    Mapping to the reference genome is done using trimmed PE-reads, both paired and singletons. (Read-merging is not applied before mapping).
+    Variant calling can be performed either individualy on each sample, or jointly (preferred option).
   
     If you want to follow progress of the pipeline script, use the verbose option (`-vvvvv`).
     In order to use multithreading, use the `-j` option (`-j 12`).
@@ -84,19 +93,25 @@ The NGS pipeline is run using `bia_pipeline.py` script:
     - fastqs/    - FASTQ files
     - drmaa/     - SLURM scripts created automatically (if you are using SLURM; for debugging purposes)
     - qc/        - qc output from FastQC and QUAST
+    
+    and possibly a file:
+    - multisample.fb.vcf - variants joint called on all samples.
 
-    After finishing, the sample directories will contain:
+    The sample directories will contain:
     - FASTQ files at different processing stages
     - assembled genome
+    - BAM file with reads aligned to the reference genome
+    - VCF file with variants
     
 
 * Typical usage
 
-    For running the assembly using 12 concurrent threads:
+    For running the assembly using 12 concurrent threads on raw data from the sequencer (runfolder):
 
-	`bia_pipeline.py --run_folder /incoming/RUN_XXXX_YYYY_ZZZZZ --settings /my_project/ecoli.config --target complete_run -vvv -j 12 --log_file /my_project/pipeline_run_XXX.log`
+	`bia_pipeline.py --run_folder /incoming/RUN_XXXX_YYYY_ZZZZZ --settings /my_project/bia_pipeline.config --target complete_run -vvv -j 12 --log_file /my_project/pipeline_run_XXX.log`
+    
+    For joint-variant calling on FASTQ files specified in the config file, no multithreading:
 
-
-
+    `bia_pipeline.py --settings /my_project/bia_pipeline.config --target jointcall_variants_on_trimmed -vv --log_file /my_project/pipeline_run_XXX.log`
 
 
