@@ -682,6 +682,10 @@ def merge_reads(inputs, outputs):
 	run_cmd(bbmerge, args, dockerize=dockerize)
     
     
+def clean_nottrimmed_fastqs(filename_regex):
+    """ Remove the trimmed fastq files. Links to original fastqs are kept """
+    for f in glob.glob(os.path.join(runs_scratch_dir,'*',filename_regex)):
+        os.remove(f)    
     
 #
 # Input FASTQ filenames are expected to have following format:
@@ -693,6 +697,7 @@ def merge_reads(inputs, outputs):
 # SAMPLE_ID can contain all signs except path delimiter, i.e. "\"
 #
 @active_if(run_folder != None or input_fastqs != None)
+@posttask(lambda: clean_nottrimmed_fastqs('*_notmerged_R[12].fq.gz'))
 @transform(merge_reads, 
            formatter(None, '.+/(?P<PREFIX>[^/]+)\.fq\.gz$', '.+/(?P<PREFIX>[^/]+)\.fq\.gz$'), 
            ['{path[1]}/{PREFIX[1]}.trimmed.fq.gz', '{path[2]}/{PREFIX[2]}.trimmed.fq.gz',
@@ -721,6 +726,7 @@ def trim_notmerged_pairs(inputs, outfqs):
 # SAMPLE_ID can contain all signs except path delimiter, i.e. "\"
 #
 @active_if(run_folder != None or input_fastqs != None)
+@posttask(lambda: clean_nottrimmed_fastqs('*_merged.fq.gz'))
 @transform(merge_reads, suffix('_merged.fq.gz'), '_merged.trimmed.fq.gz')
 def trim_merged_reads(input_fqs, trimmed_fq):
     """ Trim merged overlapping reads """
@@ -873,9 +879,9 @@ def clean_trimmed_fastqs():
 def clean_assembly_dir(assembly_name):
     """ Remove the temporary assembly files """
     import shutil
-    for f in glob.glob(os.path.join(runs_scratch_dir,'*',assembly_name+'_assembly')):
-            print 'rm -r '+f
-            #shutil.rmtree(f)
+    for f in glob.glob(os.path.join(runs_scratch_dir,'*',assembly_name)):
+        #print 'rm -r '+f
+        shutil.rmtree(f)
 
 
 def run_spades(out_dir, fq=None, fq1=None, fq2=None, 
@@ -910,8 +916,7 @@ def spades_assembly(scaffolds_file, assembly_name, **args):
     import shutil
     shutil.copy(os.path.join(out_dir,'scaffolds.fasta'), scaffolds_file)
     shutil.copy(os.path.join(out_dir,'contigs.fasta'), scaffolds_file+'.contigs.fasta')
-    #shutil.rmtree(out_dir)
-
+    
 
 #
 # FASTQ filenames are expected to have following format:
@@ -941,7 +946,7 @@ def assemble_trimmed(fastqs, scaffolds):
 #
 @jobs_limit(8)
 #@posttask(clean_trimmed_fastqs)
-#@posttask(lambda: clean_assembly_dir('mra_assembly'))
+@posttask(lambda: clean_assembly_dir('mra_assembly'))
 @collate([trim_merged_reads, trim_notmerged_pairs], formatter(), '{subpath[0][0]}/{subdir[0][0]}_mra.fasta')
 def assemble_merged(fastqs, scaffolds):
     fqm=fastqs[0]
