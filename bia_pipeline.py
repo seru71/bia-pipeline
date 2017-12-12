@@ -358,6 +358,7 @@ if __name__ == '__main__':
     freebayes = config.get('Tools', 'freebayes') 
     spades = config.get('Tools', 'spades') 
     quast = config.get('Tools', 'quast')
+    multiqc = config.get('Tools', 'multiqc')
 
 #88888888888888888888888888888888888888888888888888888888888888888888888888888888888888888
 
@@ -1031,6 +1032,13 @@ def qc_mr_assemblies(scaffolds, report_dir):
     run_cmd(quast, args, dockerize=dockerize)
 
 
+@follows(qc_mr_assemblies, qc_reads)
+@files(os.path.join(runs_scratch_dir, 'qc'), os.path.join(runs_scratch_dir, 'qc', 'multiqc', 'report.html'))
+def qc_multiqc(input_dir, report):
+    args = "--interactive -n %s %s" % (report, input_dir)
+    run_cmd(multiqc, args, dockerize=dockerize)
+
+
 
 #def archive_results():
     ## if optional results_archive was not provided - do nothing
@@ -1056,7 +1064,7 @@ def qc_mr_assemblies(scaffolds, report_dir):
 
 
 #@posttask(archive_results, cleanup_files)
-@follows(qc_reads, qc_mr_assemblies)
+@follows(qc_multiqc)
 def complete_run():
     pass
 
