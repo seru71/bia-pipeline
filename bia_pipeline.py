@@ -844,7 +844,7 @@ def call_variants_freebayes(bams_list, vcf, ref_genome, bam_list_filename='/tmp/
         for bam in bams_list:
             f.write(bam + '\n')
     
-    args = args = " -f {ref} -v {vcf} -L {bam_list} \
+    args = args = " -f {ref} -v {vcf} -L {bam_list} --ploidy=1 \
         ".format(ref=ref_genome, vcf=vcf, bam_list=bam_list_filename)
             
     run_cmd(freebayes, args, dockerize=dockerize, cpus=threads, mem_per_cpu=int(mem/threads))
